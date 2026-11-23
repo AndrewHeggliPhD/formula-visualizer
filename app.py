@@ -436,17 +436,18 @@ def main() -> None:
 
     # Compact single-row header with Theme (Dark/Light) & Language toggles
     h_col1, h_col2, h_col3 = st.columns([5, 1.7, 1.7])
+    cur_lang = st.session_state["lang"]
+    theme_labels = {
+        "light": f"☀️ {t('theme_light', cur_lang)}",
+        "dark": f"🌙 {t('theme_dark', cur_lang)}",
+    }
 
     with h_col2:
         theme_choice = st.radio(
-            t("theme_label", st.session_state["lang"]),
+            t("theme_label", cur_lang),
             options=["light", "dark"],
             index=0 if st.session_state["theme"] == "light" else 1,
-            format_func=lambda th: (
-                f"☀️ {t('theme_light', st.session_state['lang'])}"
-                if th == "light"
-                else f"🌙 {t('theme_dark', st.session_state['lang'])}"
-            ),
+            format_func=lambda th: theme_labels.get(th, th),
             horizontal=True,
             label_visibility="collapsed",
             key="theme_toggle",
@@ -455,9 +456,9 @@ def main() -> None:
 
     with h_col3:
         lang_choice = st.radio(
-            t("language_label", st.session_state["lang"]),
+            t("language_label", cur_lang),
             options=["no", "en"],
-            index=0 if st.session_state["lang"] == "no" else 1,
+            index=0 if cur_lang == "no" else 1,
             format_func=lambda code: "🇳🇴 NO" if code == "no" else "🇬🇧 EN",
             horizontal=True,
             label_visibility="collapsed",
