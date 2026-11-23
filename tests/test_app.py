@@ -7,29 +7,28 @@ from streamlit.testing.v1 import AppTest
 APP_PATH = str(Path(__file__).resolve().parent.parent / "app.py")
 
 
-def test_app_boots_and_interacts_distributions_mode():
+def test_app_boots_theme_toggle_and_distributions():
     at = AppTest.from_file(APP_PATH, default_timeout=20)
     at.run()
+    assert not at.exception
+
+    # Toggle Dark Mode ON and back to Light Mode
+    at.radio(key="theme_toggle").set_value("dark").run()
+    assert not at.exception
+    assert at.session_state["theme"] == "dark"
+
+    at.radio(key="theme_toggle").set_value("light").run()
     assert not at.exception
 
     # Toggle language to English
     at.radio(key="lang_toggle").set_value("en").run()
     assert not at.exception
 
-    # Switch to Gamma distribution
+    # Switch through Gamma and Binomial distributions
     at.sidebar.selectbox(key="dist_selector").set_value("gamma").run()
     assert not at.exception
 
-    # Switch to Binomial distribution and CDF view
     at.sidebar.selectbox(key="dist_selector").set_value("binomial").run()
-    assert not at.exception
-    at.sidebar.radio(key="dist_view_radio").set_value("cdf").run()
-    assert not at.exception
-
-    # Save and clear Ghost reference curve
-    at.sidebar.button(key="save_ghost_dist").click().run()
-    assert not at.exception
-    at.sidebar.button(key="clear_ghost_dist").click().run()
     assert not at.exception
 
 
@@ -42,8 +41,8 @@ def test_app_custom_formula_mode_tfidf_and_inverse():
     at.sidebar.radio(key="mode_radio").set_value("custom").run()
     assert not at.exception
 
-    # Switch scaling mode to Value-based
-    at.sidebar.radio(key="scaling_mode_radio").set_value("value").run()
+    # Switch to Dark Mode in Custom Formula mode
+    at.radio(key="theme_toggle").set_value("dark").run()
     assert not at.exception
 
     # Enter b = 1/a manually

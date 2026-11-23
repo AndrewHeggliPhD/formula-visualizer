@@ -364,8 +364,10 @@ def _render_occurrence_token(
     tooltip = "&#10;".join(html.escape(line, quote=True) for line in tooltip_lines)
 
     label_safe = html.escape(meta.display_name)
+    occ_id_safe = html.escape(meta.occ_id, quote=True)
     return (
         f'<span class="fv-tok {color_cls}" '
+        f'data-occ-id="{occ_id_safe}" '
         f'style="font-size:{font_rem}rem;" '
         f'title="{tooltip}">'
         f"{label_safe}{occ_suffix}</span>"
@@ -668,25 +670,27 @@ def _join_mul_factors(
     return '<span class="fv-op">·</span>'.join(rendered_parts)
 
 
-def render_formula_card_html(
+def render_formula_stage_inner_html(
     parsed: ParsedFormula,
     eval_res: EvaluationResult,
-    scaling_mode: str = "sensitivity",
     color_coding: bool = True,
     lang: str = "no",
+    base_rem: float = 1.38,
 ) -> str:
-    """Render the complete hero formula card HTML with dynamic LHS + RHS visual scaling."""
-    lhs_font_rem = round(1.42 * eval_res.response_scale, 3)
+    """Render just the inner LHS = RHS = value markup with data-occ-id hooks for 60 FPS JS updates."""
+    lhs_font_rem = round(base_rem * 1.03 * eval_res.response_scale, 3)
     lhs_safe = html.escape(parsed.lhs_display)
     val_str = _fmt_num(eval_res.output_value) if eval_res.valid else "—"
 
-    lhs_tooltip = (
-        f"{parsed.lhs_display}&#10;"
-        f"{t('col_value', lang)}: {val_str}&#10;"
-        f"{t('col_scale', lang)}: {eval_res.response_scale:.2f}×"
-    )
+    lhs_tooltip_lines = [
+        parsed.lhs_display,
+        f"{t('col_value', lang)}: {val_str}",
+        f"{t('col_scale', lang)}: {eval_res.response_scale:.2f}×",
+    ]
+    lhs_tooltip = "&#10;".join(html.escape(line, quote=True) for line in lhs_tooltip_lines)
     lhs_html = (
         f'<span class="fv-tok fv-tok-response" '
+        f'data-role="lhs" '
         f'style="font-size:{lhs_font_rem}rem;" '
         f'title="{lhs_tooltip}">{lhs_safe}</span>'
     )
@@ -696,11 +700,35 @@ def render_formula_card_html(
         occurrences=eval_res.occurrences,
         color_coding=color_coding,
         lang=lang,
+        base_rem=base_rem,
+    )
+
+    return (
+        f"{lhs_html}"
+        f'<span class="fv-eq-sign">=</span>'
+        f"{rhs_html}"
+        f'<span class="fv-rhs-value" data-role="rhs-value">= {html.escape(val_str)}</span>'
+    )
+
+
+def render_formula_card_html(
+    parsed: ParsedFormula,
+    eval_res: EvaluationResult,
+    scaling_mode: str = "sensitivity",
+    color_coding: bool = True,
+    lang: str = "no",
+    dark_mode: bool = False,
+) -> str:
+    """Render the complete hero formula card HTML with dynamic LHS + RHS visual scaling."""
+    stage_inner = render_formula_stage_inner_html(
+        parsed=parsed,
+        eval_res=eval_res,
+        color_coding=color_coding,
+        lang=lang,
     )
 
     hint_key = "formula_card_hint_sens" if scaling_mode == "sensitivity" else "formula_card_hint_val"
 
-    legend_html = ""
     if color_coding and scaling_mode == "sensitivity":
         legend_html = (
             f'<div class="fv-legend">'
@@ -717,18 +745,16 @@ def render_formula_card_html(
             f"</div>"
         )
 
+    theme_cls = " fv-dark" if dark_mode else ""
     return (
         f"{FORMULA_CSS}"
-        f'<div class="fv-card">'
+        f'<div class="fv-card{theme_cls}">'
         f'<div class="fv-card-header">'
         f'<span class="fv-card-title">{html.escape(t("formula_card_title", lang))}</span>'
         f'<span class="fv-card-hint">{html.escape(t(hint_key, lang))}</span>'
         f"</div>"
         f'<div class="fv-math-stage">'
-        f"{lhs_html}"
-        f'<span class="fv-eq-sign">=</span>'
-        f"{rhs_html}"
-        f'<span class="fv-rhs-value">= {html.escape(val_str)}</span>'
+        f"{stage_inner}"
         f"</div>"
         f"{legend_html}"
         f"</div>"
