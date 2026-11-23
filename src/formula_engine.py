@@ -209,12 +209,19 @@ def _extract_compound_symbols(rhs: str) -> Tuple[str, Dict[str, str]]:
     n = len(rhs)
 
     while i < n:
-        # Look for identifier followed by '('
-        m = re.match(r"([A-Za-z][A-Za-z0-9_]*)\s*\(", rhs[i:])
+        # Only match identifiers at a word boundary (never mid-identifier!)
+        at_word_start = (i == 0) or not (rhs[i - 1].isalnum() or rhs[i - 1] == "_")
+        m = re.match(r"([A-Za-z][A-Za-z0-9_]*)\s*\(", rhs[i:]) if at_word_start else None
         if m:
             ident = m.group(1)
             open_paren_idx = i + m.end() - 1
-            # Find matching closing parenthesis
+            if ident in KNOWN_FUNCTIONS:
+                # Preserve known math function call intact and continue parsing inside its arguments
+                result.append(rhs[i : open_paren_idx + 1])
+                i = open_paren_idx + 1
+                continue
+
+            # Find matching closing parenthesis for compound symbol like tf(t, d) or P(B|A)
             depth = 0
             j = open_paren_idx
             while j < n:
@@ -226,7 +233,7 @@ def _extract_compound_symbols(rhs: str) -> Tuple[str, Dict[str, str]]:
                         break
                 j += 1
 
-            if depth == 0 and ident not in KNOWN_FUNCTIONS:
+            if depth == 0:
                 full_token = rhs[i : j + 1]
                 # Normalize whitespace cleanly for display
                 clean_label = re.sub(r"\s+", " ", full_token).replace("( ", "(").replace(" )", ")")

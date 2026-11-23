@@ -1,10 +1,14 @@
 """End-to-end headless Streamlit AppTest smoke tests."""
 
+from pathlib import Path
+
 from streamlit.testing.v1 import AppTest
+
+APP_PATH = str(Path(__file__).resolve().parent.parent / "app.py")
 
 
 def test_app_boots_and_interacts_distributions_mode():
-    at = AppTest.from_file("app.py", default_timeout=20)
+    at = AppTest.from_file(APP_PATH, default_timeout=20)
     at.run()
     assert not at.exception
 
@@ -30,7 +34,7 @@ def test_app_boots_and_interacts_distributions_mode():
 
 
 def test_app_custom_formula_mode_tfidf_and_inverse():
-    at = AppTest.from_file("app.py", default_timeout=20)
+    at = AppTest.from_file(APP_PATH, default_timeout=20)
     at.run()
     assert not at.exception
 
