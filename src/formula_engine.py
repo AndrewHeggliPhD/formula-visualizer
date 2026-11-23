@@ -274,9 +274,13 @@ def _convert_base_logs(expr: sp.Expr) -> sp.Expr:
     return expr
 
 
-def _build_local_dict(compound_map: Dict[str, str]) -> Dict[str, Any]:
-    """Construct a safe SymPy local_dict for parsing mathematical expressions."""
-    local_dict: Dict[str, Any] = {
+def _build_local_dict(processed_rhs: str, compound_map: Dict[str, str]) -> Dict[str, Any]:
+    """
+    Construct a safe SymPy local_dict for parsing mathematical expressions.
+    Explicitly registers every non-function identifier (such as N, S, Q, O, I) as a real
+    SymPy Symbol so SymPy never shadows user variables with built-in functions like sympy.N.
+    """
+    fn_map: Dict[str, Any] = {
         "sin": sp.sin,
         "cos": sp.cos,
         "tan": sp.tan,
@@ -302,11 +306,23 @@ def _build_local_dict(compound_map: Dict[str, str]) -> Dict[str, Any]:
         "floor": sp.floor,
         "Max": sp.Max,
         "Min": sp.Min,
+    }
+    local_dict: Dict[str, Any] = {
         "pi": sp.pi,
         "E": sp.E,
     }
     for sym_name in compound_map:
         local_dict[sym_name] = sp.Symbol(sym_name, real=True)
+
+    # Identify all identifiers in processed_rhs and bind calls vs variables explicitly
+    for m in re.finditer(r"\b([A-Za-z_][A-Za-z0-9_]*)\b(\s*\()?", processed_rhs):
+        ident = m.group(1)
+        is_call = m.group(2) is not None
+        if is_call and ident in fn_map:
+            local_dict[ident] = fn_map[ident]
+        elif ident not in local_dict:
+            local_dict[ident] = sp.Symbol(ident, real=True)
+
     return local_dict
 
 
@@ -661,7 +677,14 @@ def parse_custom_formula(raw_formula: str) -> ParsedFormula:
         raise ValueError("Høyresiden av formelen mangler / Right-hand side of formula is empty.")
 
     processed_rhs, compound_map = _preprocess_rhs(rhs_raw)
-    local_dict = _build_local_dict(compound_map)
+    local_dict = _build_local_dict(processed_rhs, compound_map)
+    safe_global_dict: Dict[str, Any] = {
+        "Symbol": sp.Symbol,
+        "Integer": sp.Integer,
+        "Float": sp.Float,
+        "Rational": sp.Rational,
+        "Function": sp.Function,
+    }
 
     transformations = standard_transformations + (
         implicit_multiplication_application,
@@ -672,6 +695,7 @@ def parse_custom_formula(raw_formula: str) -> ParsedFormula:
         expr = parse_expr(
             processed_rhs,
             local_dict=local_dict,
+            global_dict=safe_global_dict,
             transformations=transformations,
             evaluate=True,
         )
