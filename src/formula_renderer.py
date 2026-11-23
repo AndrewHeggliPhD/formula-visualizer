@@ -319,13 +319,11 @@ def _is_neg_pow(node: sp.Expr) -> bool:
 
 
 def _is_special_standalone_factor(node: sp.Expr) -> bool:
-    """Keep exp(...), log(...), binomial(...) beside leading fraction for textbook layout."""
+    """Keep exp(...), log(...), binomial(...), and symbolic powers like (1+x^2/nu)^(-(nu+1)/2) beside leading fraction."""
     if node.func in (sp.exp, sp.log, sp.binomial):
         return True
-    # Also keep (x - mu)**(...) or (1 + x^2/nu)**(-...) separated from Gamma/sqrt fractions
-    if isinstance(node, sp.Pow) and not node.base.is_number:
-        if node.base.is_Add:
-            return True
+    if isinstance(node, sp.Pow) and node.base.is_Add and not node.exp.is_number:
+        return True
     return False
 
 
@@ -626,6 +624,36 @@ def _render_mul(
         rendered = _join_mul_factors(all_factors, occurrences, color_coding, lang, base_rem)
         prefix = '<span class="fv-op">−</span>' if sign_neg else ""
         return f"{prefix}{rendered}"
+
+    # Clean textbook un-rationalization: sqrt(2) / 2 -> 1 / sqrt(2), and sqrt(2)*sqrt(pi) -> sqrt(2*pi)
+    sqrt2 = sp.Pow(sp.Integer(2), sp.Rational(1, 2), evaluate=False)
+    sqrt2_eval = sp.sqrt(2)
+    sqrt_pi_eval = sp.sqrt(sp.pi)
+    has_num_sqrt2 = any(f == sqrt2 or f == sqrt2_eval for f in numer_factors)
+    has_den_2 = any(f == sp.Integer(2) for f in denom_factors)
+    if has_num_sqrt2 and has_den_2:
+        numer_factors = [f for f in numer_factors if not (f == sqrt2 or f == sqrt2_eval)]
+        removed_2 = False
+        new_den: List[sp.Expr] = []
+        for f in denom_factors:
+            if not removed_2 and f == sp.Integer(2):
+                removed_2 = True
+                continue
+            new_den.append(f)
+        denom_factors = new_den
+        # If sqrt(pi) is also in denominator, combine into sqrt(2*pi) for iconic Normal PDF!
+        has_den_sqrt_pi = any(
+            f == sqrt_pi_eval or (isinstance(f, sp.Pow) and f.base == sp.pi and f.exp == sp.Rational(1, 2))
+            for f in denom_factors
+        )
+        if has_den_sqrt_pi:
+            denom_factors = [
+                f for f in denom_factors
+                if not (f == sqrt_pi_eval or (isinstance(f, sp.Pow) and f.base == sp.pi and f.exp == sp.Rational(1, 2)))
+            ]
+            denom_factors.append(sp.Pow(sp.Mul(sp.Integer(2), sp.pi, evaluate=False), sp.Rational(1, 2), evaluate=False))
+        else:
+            denom_factors.append(sqrt2)
 
     # When there IS a denominator, keep special factors like exp(...) beside the fraction
     # for textbook layout (e.g. 1/(σ√(2π)) · exp(...)), unless numerator is empty and no trailing

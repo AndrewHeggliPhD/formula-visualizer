@@ -498,7 +498,7 @@ input[type="range"] {{
 .fv-frac-num {{ display: inline-flex; align-items: center; justify-content: center; padding: 0 0.24rem 0.09rem 0.24rem; border-bottom: 1.8px solid var(--frac-bar); min-width: 1rem; }}
 .fv-frac-den {{ display: inline-flex; align-items: center; justify-content: center; padding: 0.12rem 0.24rem 0 0.24rem; min-width: 1rem; }}
 .fv-pow {{ display: inline-flex; align-items: flex-start; }}
-.fv-sup {{ font-size: 0.72em; margin-left: 1px; margin-top: -0.4em; display: inline-flex; align-items: center; }}
+.fv-sup {{ font-size: 0.72em; font-weight: 700; margin-left: 2px; margin-top: -0.22em; display: inline-flex; align-items: center; }}
 .fv-sqrt {{ display: inline-flex; align-items: center; margin: 0 0.06rem; }}
 .fv-sqrt-rad {{ font-size: 1.15em; margin-right: 1px; color: var(--frac-bar); }}
 .fv-sqrt-body {{ border-top: 1.5px solid var(--frac-bar); padding: 0.05rem 0.18rem 0 0.14rem; display: inline-flex; align-items: center; }}
@@ -558,7 +558,7 @@ input[type="range"] {{
 .canvas-wrap {{
   position: relative;
   width: 100%;
-  height: 290px;
+  height: 275px;
 }}
 canvas#liveChart {{
   width: 100%;

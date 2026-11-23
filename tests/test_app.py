@@ -13,15 +13,15 @@ def test_app_boots_theme_toggle_and_distributions():
     assert not at.exception
 
     # Toggle Dark Mode ON and back to Light Mode
-    at.radio(key="theme_toggle").set_value("dark").run()
+    at.sidebar.radio(key="theme_toggle").set_value("dark").run()
     assert not at.exception
     assert at.session_state["theme"] == "dark"
 
-    at.radio(key="theme_toggle").set_value("light").run()
+    at.sidebar.radio(key="theme_toggle").set_value("light").run()
     assert not at.exception
 
     # Toggle language to English
-    at.radio(key="lang_toggle").set_value("en").run()
+    at.sidebar.radio(key="lang_toggle").set_value("en").run()
     assert not at.exception
 
     # Switch through Gamma and Binomial distributions
@@ -42,7 +42,7 @@ def test_app_custom_formula_mode_tfidf_and_inverse():
     assert not at.exception
 
     # Switch to Dark Mode in Custom Formula mode
-    at.radio(key="theme_toggle").set_value("dark").run()
+    at.sidebar.radio(key="theme_toggle").set_value("dark").run()
     assert not at.exception
 
     # Enter b = 1/a manually

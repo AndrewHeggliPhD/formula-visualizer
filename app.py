@@ -32,10 +32,11 @@ def _inject_theme_css(dark_mode: bool) -> None:
     if dark_mode:
         css = """
         <style>
-        .block-container { padding-top: 0.75rem !important; padding-bottom: 1rem !important; max-width: 1440px; }
-        header[data-testid="stHeader"] { background: #0B1120 !important; }
+        .block-container { padding-top: 2.6rem !important; padding-bottom: 0.5rem !important; max-width: 1460px; }
+        header[data-testid="stHeader"] { background: transparent !important; }
         [data-testid="stAppViewContainer"] { background: #0B1120 !important; color: #F1F5F9 !important; }
         [data-testid="stSidebar"] { background: #111827 !important; border-right: 1px solid #1E293B !important; }
+        [data-testid="stSidebar"] [data-testid="stSidebarContent"] { padding-top: 1.2rem !important; }
         [data-testid="stSidebar"] * { color: #E2E8F0; }
         h1, h2, h3, p, span, label, div[data-testid="stMarkdownContainer"] { color: #F1F5F9; }
         .stCaption, [data-testid="stCaptionContainer"] { color: #94A3B8 !important; }
@@ -63,10 +64,11 @@ def _inject_theme_css(dark_mode: bool) -> None:
     else:
         css = """
         <style>
-        .block-container { padding-top: 0.75rem !important; padding-bottom: 1rem !important; max-width: 1440px; }
-        header[data-testid="stHeader"] { background: #F8FAFC !important; }
+        .block-container { padding-top: 2.6rem !important; padding-bottom: 0.5rem !important; max-width: 1460px; }
+        header[data-testid="stHeader"] { background: transparent !important; }
         [data-testid="stAppViewContainer"] { background: #F8FAFC !important; color: #0F172A !important; }
         [data-testid="stSidebar"] { background: #FFFFFF !important; border-right: 1px solid #E2E8F0 !important; }
+        [data-testid="stSidebar"] [data-testid="stSidebarContent"] { padding-top: 1.2rem !important; }
         iframe { border: none !important; background: transparent !important; }
         </style>
         """
@@ -255,7 +257,7 @@ def _run_distributions_mode(lang: str, dark_mode: bool) -> Dict[str, float]:
         initial_color_coding=True,
         initial_view_type="pdf",
     )
-    components.html(studio_html, height=645, scrolling=True)
+    components.html(studio_html, height=625, scrolling=True)
     return init_values
 
 
@@ -427,57 +429,50 @@ def _run_custom_mode(lang: str, dark_mode: bool) -> Dict[str, float]:
         initial_color_coding=True,
         initial_view_type="pdf",
     )
-    components.html(studio_html, height=645, scrolling=True)
+    components.html(studio_html, height=625, scrolling=True)
     return init_values
 
 
 def main() -> None:
     _init_session_state()
 
-    # Compact single-row header with Theme (Dark/Light) & Language toggles
-    h_col1, h_col2, h_col3 = st.columns([5, 1.7, 1.7])
+    # Place Title, Theme (Light/Dark), and Language toggles prominently at the top of the sidebar
+    # so they are ALWAYS visible and never obscured by Streamlit's top toolbar!
     cur_lang = st.session_state["lang"]
+    st.sidebar.markdown(
+        f"<div style='font-size:1.3rem;font-weight:800;margin-bottom:2px;'>📐 {t('app_title', cur_lang)}</div>"
+        f"<div style='font-size:0.78rem;opacity:0.72;margin-bottom:10px;'>{t('app_subtitle', cur_lang)}</div>",
+        unsafe_allow_html=True,
+    )
+
     theme_labels = {
         "light": f"☀️ {t('theme_light', cur_lang)}",
         "dark": f"🌙 {t('theme_dark', cur_lang)}",
     }
+    theme_choice = st.sidebar.radio(
+        t("theme_label", cur_lang),
+        options=["light", "dark"],
+        index=0 if st.session_state["theme"] == "light" else 1,
+        format_func=lambda th: theme_labels.get(th, th),
+        horizontal=True,
+        key="theme_toggle",
+    )
+    st.session_state["theme"] = theme_choice
 
-    with h_col2:
-        theme_choice = st.radio(
-            t("theme_label", cur_lang),
-            options=["light", "dark"],
-            index=0 if st.session_state["theme"] == "light" else 1,
-            format_func=lambda th: theme_labels.get(th, th),
-            horizontal=True,
-            label_visibility="collapsed",
-            key="theme_toggle",
-        )
-        st.session_state["theme"] = theme_choice
-
-    with h_col3:
-        lang_choice = st.radio(
-            t("language_label", cur_lang),
-            options=["no", "en"],
-            index=0 if cur_lang == "no" else 1,
-            format_func=lambda code: "🇳🇴 NO" if code == "no" else "🇬🇧 EN",
-            horizontal=True,
-            label_visibility="collapsed",
-            key="lang_toggle",
-        )
-        st.session_state["lang"] = lang_choice
+    lang_choice = st.sidebar.radio(
+        t("language_label", cur_lang),
+        options=["no", "en"],
+        index=0 if cur_lang == "no" else 1,
+        format_func=lambda code: "🇳🇴 Norsk" if code == "no" else "🇬🇧 English",
+        horizontal=True,
+        key="lang_toggle",
+    )
+    st.session_state["lang"] = lang_choice
+    st.sidebar.divider()
 
     lang = st.session_state["lang"]
     dark_mode = st.session_state["theme"] == "dark"
     _inject_theme_css(dark_mode)
-
-    with h_col1:
-        st.markdown(
-            f"<div style='display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;'>"
-            f"<span style='font-size:1.45rem;font-weight:800;'>📐 {t('app_title', lang)}</span>"
-            f"<span style='font-size:0.86rem;opacity:0.72;'>{t('app_subtitle', lang)}</span>"
-            f"</div>",
-            unsafe_allow_html=True,
-        )
 
     # Sidebar: Mode selection
     mode = st.sidebar.radio(
